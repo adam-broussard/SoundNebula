@@ -9,8 +9,10 @@ class TangosInputHandler:
 		latest_timestep - Lowest redshift timestep of interest. Type(int)
 		earliest_timestep - Highest redshift timestep of interest. Type(int)
 		region_size - Size of the surrounding halo search radius in comoving units. Type(float)
+		boxsize - Simulation box size in comoving coordinates. Default 25e3, Type(float)
 		periodic - Flag for simulation periodic boundary conditions. Default True
 	'''
+
 	def wrap(relpos, boxsize=25e3):
 		''' If simulation has periodic boundary conditions, periodically wrap coordinates relative to the center point.
 		Inputs:
@@ -26,20 +28,20 @@ class TangosInputHandler:
 		else:
 		    relpos[bad] = -1.0 * (relpos[bad] / np.abs(relpos[bad])) * np.abs(bphys - np.abs(relpos[bad]))
 
-	def __init__(self, sim_name, center_halo, latest_timestep, earliest_timestep, region_size, periodic=True):
+	def __init__(self, sim_name, center_halo, latest_timestep, earliest_timestep, region_size, boxsize=25e3, periodic=True):
 		import numpy as np
 		import tangos
 		from scipy.spatial import KDTree
 
 		self.simulation = tangos.get_simulation(str(sim_name))
 		self.region_size = float(region_size)
-		self.boxsize = 25e3 ##Can Tangos return simulation boxsize?
+		self.boxsize = float(boxsize)
 		self.timestep, self.num_timesteps = self.find_timesteps(int(latest_timestep), int(earliest_timestep))
 		self.center_halo = self.timestep[center_halo]
 
 		self.relevant_halos = self.gather_relevant_halos()
 		
-	def surrounding_halos(self)
+	def surrounding_halos(self):
 		''' Finds all halos within a given radius of the central halo.
 		Outputs:
 			Tangos halo_number() of halos within a radius of region_size from the central halo.
@@ -78,6 +80,6 @@ class TangosInputHandler:
 		relevant_halos = []
 		for step in range(len(num_timesteps)):
 			relevant_halos += [self.surrounding_halos()]
-			self.timestep = self.timestep.previous() ##Check syntax
-			self.center_halo = self.center_halo.previous() ##Check syntax
+			self.timestep = self.timestep.previous
+			self.center_halo = self.center_halo.previous
 		return relevant_halos
