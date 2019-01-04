@@ -13,7 +13,7 @@ class TangosInputHandler:
 		periodic - Flag for simulation periodic boundary conditions. Default True
 	'''
 
-	def wrap(relpos, boxsize=25e3):
+	def wrap(relpos, box_size=25e3):
 		''' If simulation has periodic boundary conditions, periodically wrap coordinates relative to the center point.
 		Inputs:
 			relpos - (N,M) array of M-dimensional coordinates with a pre-defined center.
@@ -21,21 +21,21 @@ class TangosInputHandler:
 		Outputs:
 			Replaces relpos in-place.
 		'''
-	    bphys = boxsize
+	    bphys = box_size
 		bad = np.where(np.abs(relpos) > bphys/2.)
 		if type(bphys) == np.ndarray:
 		    relpos[bad] = -1.0 * (relpos[bad] / np.abs(relpos[bad])) * np.abs(bphys[bad] - np.abs(relpos[bad]))
 		else:
 		    relpos[bad] = -1.0 * (relpos[bad] / np.abs(relpos[bad])) * np.abs(bphys - np.abs(relpos[bad]))
 
-	def __init__(self, sim_name, center_halo, latest_timestep, earliest_timestep, region_size, boxsize=25e3, periodic=True):
+	def __init__(self, sim_name, center_halo, latest_timestep, earliest_timestep, region_size, box_size=25e3, periodic=True):
 		import numpy as np
 		import tangos
 		from scipy.spatial import KDTree
 
 		self.simulation = tangos.get_simulation(str(sim_name))
-		self.region_size = float(region_size)
-		self.boxsize = float(boxsize)
+		self.region_size = 5*float(region_size)
+		self.box_size = float(box_size)
 		self.timestep, self.num_timesteps = self.find_timesteps(int(latest_timestep), int(earliest_timestep))
 		self.center_halo = self.timestep[center_halo]
 
@@ -51,7 +51,7 @@ class TangosInputHandler:
 		coords_rel = coords - coords_center
 
 		if self.periodic == True:
-			wrap(coords_rel, self.boxsize)
+			wrap(coords_rel, self.box_size)
 
 		tree = KDTree(coords_rel)
 		query = tree.query_ball_point([0,0,0], self.region_size)
@@ -66,11 +66,10 @@ class TangosInputHandler:
 			Object containing highest redshift timestep desired.
 			Number of steps visible to Tangos between earliest and latest desired timesteps.
 		'''
-		timesteps = self.simulation.timesteps
-		steplist = [str(step) for step in timesteps]
-		early = np.where(earliest_timestep in steplist)
-		late = np.where(latest_timestep in steplist)
-		return timesteps[late], late - early
+		all_steps = [str(step) for step in self.simulation.timesteps]
+		early = [i for i,step in enumerate(all_steps) if earliest_timestep in step][0]
+		late = [i for i,step in enumerate(all_steps) if latest_timestep in step][0]
+		return all_steps[late], late - early
 
 	def gather_relevant_halos(self):
 		''' Generate a list of halo numbers for all halos surrounding the central halo, for each timestep.
@@ -83,3 +82,6 @@ class TangosInputHandler:
 			self.timestep = self.timestep.previous
 			self.center_halo = self.center_halo.previous
 		return relevant_halos
+
+	def major_progenitors(self, halo):
+		return tangos.relation_finding.MultiHopMajorProgenitorsStrategy(halo).all()
